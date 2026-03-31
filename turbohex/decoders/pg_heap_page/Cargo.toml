@@ -1,0 +1,10 @@
+[package]
+name = "pg_heap_page"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+pg_arrow = { path = "../../../../pg_arrow" }
