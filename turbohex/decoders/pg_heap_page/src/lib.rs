@@ -3,8 +3,8 @@ use std::alloc::Layout;
 use std::fmt::Write;
 
 use pg_arrow::file::{
-    HeapPageData, HeapTupleData, InfoMask, LP_DEAD, LP_NORMAL, LP_REDIRECT, LP_UNUSED,
-    PAGE_BUFFER_SIZE, HEAP_NATTS_MASK, SIZEOF_HEAP_TUPLE_HEADER,
+    HEAP_NATTS_MASK, HeapPageData, HeapTupleData, InfoMask, LP_DEAD, LP_NORMAL, LP_REDIRECT,
+    LP_UNUSED, PAGE_BUFFER_SIZE, SIZEOF_HEAP_TUPLE_HEADER,
 };
 
 // --- pd_flags bits ---
@@ -168,7 +168,12 @@ fn emit_tuple(j: &mut JsonArray, i: usize, tuple: &HeapTupleData, tuple_off: usi
 
     j.entry("t_xmin", &format!("{}", th.t_xmin), tuple_off, 4);
     j.entry("t_xmax", &format!("{}", th.t_xmax), tuple_off + 4, 4);
-    j.entry("t_cid/t_xvac", &format!("{}", th.t_field3), tuple_off + 8, 4);
+    j.entry(
+        "t_cid/t_xvac",
+        &format!("{}", th.t_field3),
+        tuple_off + 8,
+        4,
+    );
 
     let block_num = th.t_ctid.ip_blkid.block_number();
     j.entry(
@@ -323,7 +328,8 @@ fn decode_page(bytes: &[u8], all_rows: bool) -> String {
     j.entry("pd_prune_xid", &format!("{}", hdr.pd_prune_xid), 20, 4);
 
     // Summary
-    let free_space = if hdr.pd_upper >= hdr.pd_lower {
+    let var_name = hdr.pd_upper >= hdr.pd_lower;
+    let free_space = if var_name {
         hdr.pd_upper - hdr.pd_lower
     } else {
         0
