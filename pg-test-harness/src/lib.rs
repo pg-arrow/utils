@@ -55,6 +55,30 @@ pub async fn connect() -> Client {
     client
 }
 
+// ── Database OID helpers ──────────────────────────────────────────────────
+
+/// Query the OID of a named database from a live PostgreSQL connection.
+pub async fn db_oid(client: &Client, datname: &str) -> usize {
+    let row = client
+        .query_one(
+            "SELECT oid FROM pg_database WHERE datname = $1",
+            &[&datname],
+        )
+        .await
+        .unwrap_or_else(|_| panic!("database {datname:?} not found"));
+    let oid: u32 = row.get(0);
+    oid as usize
+}
+
+/// Blocking wrapper: connect, query the OID of `datname`, disconnect.
+pub fn db_oid_blocking(datname: &str) -> usize {
+    let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+    rt.block_on(async {
+        let client = connect().await;
+        db_oid(&client, datname).await
+    })
+}
+
 // ── Decode test table ─────────────────────────────────────────────────────
 
 /// Name of the decode test table.
