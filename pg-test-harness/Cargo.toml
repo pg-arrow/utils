@@ -1,0 +1,10 @@
+[package]
+name = "pg-test-harness"
+version = "0.1.0"
+edition = "2024"
+description = "Shared test harness for pg_arrow and pgfusion: connects to a live PostgreSQL instance, creates/seeds decode test tables, and provides value-comparison helpers."
+
+[dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio-postgres = "0.7"
+toml = "0.9"
