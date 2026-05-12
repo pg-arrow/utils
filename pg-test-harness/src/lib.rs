@@ -26,7 +26,11 @@ pub struct PgConfig {
 /// `manifest_dir` is typically `env!("CARGO_MANIFEST_DIR")`.
 /// `version` matches a `[postgres.<version>]` section, e.g. `"pg18"`.
 pub fn read_pg_config(manifest_dir: &str, version: &str) -> PgConfig {
-    let config_path = PathBuf::from(manifest_dir).join("pg-test-config.toml");
+    let config_path = if let Ok(p) = std::env::var("PG_ARROW_TEST_CONFIG") {
+        PathBuf::from(p)
+    } else {
+        PathBuf::from(manifest_dir).join("pg-test-config.toml")
+    };
     let src = fs::read_to_string(&config_path)
         .unwrap_or_else(|_| panic!("pg-test-config.toml not found at {config_path:?}"));
     let table: Table = src.parse().expect("invalid TOML in pg-test-config.toml");
