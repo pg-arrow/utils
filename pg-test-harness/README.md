@@ -1,6 +1,20 @@
 # pg-test-harness
 
-Shared test harness for `pg_arrow` and `pgfusion`. Connects to a live PostgreSQL instance, creates and seeds decode test tables, and provides connection and value-comparison helpers.
+> **Status:** Work in progress. Used by [`pg_arrow`](https://github.com/pg-arrow/pg_arrow) and [`pgfusion`](https://github.com/pg-arrow/pgfusion); APIs may evolve as those projects do.
+
+Shared test harness for `pg_arrow` and `pgfusion`. It does two things:
+
+1. **Rust library** — connection helpers, value-decoding helpers, decode-test-table seeding, and MVCC snapshot helpers for tests that need a live PostgreSQL.
+2. **Setup scripts** — build PostgreSQL from source, initialize a local cluster, load test data, and manage pgbackrest backups. Used by every consumer's `just pg-setup` recipe.
+
+## Contents
+
+- [Library usage](#usage) — Rust dev-dependency
+- [Configuration](#configuration) — `pg-test-config.toml`
+- [API](#api) — connection, snapshots, decoders, value helpers
+- [Environment variables](#environment-variables)
+- [`setup-postgres.sh`](#scriptssetup-postgressh)
+- [`pgbackrest-backup.sh`](#scriptspgbackrest-backupsh)
 
 ## Usage
 
