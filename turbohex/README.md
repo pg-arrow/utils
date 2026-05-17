@@ -57,7 +57,7 @@ Release builds use `opt-level = "s"` and `lto = true` for compact plugin binarie
 cargo build --release
 ```
 
-Decoders depend on `pg_arrow` via a git source (`ssh://git@github.com/pg-arrow/pg_arrow.git`), so a working SSH key for that org is required for `cargo build`.
+Decoders depend on `pg_arrow` via a public git source (`https://github.com/pg-arrow/pg_arrow.git`) — no SSH key needed.
 
 ## Adding a decoder
 

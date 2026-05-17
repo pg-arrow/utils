@@ -7,4 +7,4 @@ edition.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-pg_arrow = { git = "ssh://git@github.com/pg-arrow/pg_arrow.git", branch = "main" }
+pg_arrow = { git = "https://github.com/pg-arrow/pg_arrow.git", branch = "main" }

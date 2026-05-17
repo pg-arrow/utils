@@ -15,7 +15,7 @@ turbohex/
 ## Key Conventions
 
 - Each decoder is a separate `cdylib` crate under `decoders/`
-- Decoders depend on `pg_arrow` via git source (`ssh://git@github.com/pg-arrow/pg_arrow.git`)
+- Decoders depend on `pg_arrow` via public git source (`https://github.com/pg-arrow/pg_arrow.git`)
 - Release profile uses `opt-level = "s"` and `lto = true` for small binary size
 
 ## Building
