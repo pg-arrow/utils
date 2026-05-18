@@ -21,7 +21,7 @@ turbohex/
 ## Building
 
 ```bash
-cd utilities/turbohex
+cd utils/turbohex
 cargo build --release
 ```
 

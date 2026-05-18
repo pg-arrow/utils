@@ -15,7 +15,7 @@ cargo install turbohex
 To use a decoder, build it from this repo (decoders are not published to crates.io):
 
 ```bash
-cd utilities/turbohex
+cd utils/turbohex
 cargo build --release
 # pg_heap_page decoder lands in target/release/libpg_heap_page.{dylib,so}
 ```

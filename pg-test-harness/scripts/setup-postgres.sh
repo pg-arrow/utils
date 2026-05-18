@@ -4,7 +4,7 @@
 # Sets up PostgreSQL source code for testing using git worktrees.
 # Supports multiple versions simultaneously with local installations.
 #
-# Writes pg-test-config.toml into TARGET_DIR (default: current working directory).
+# Writes pg-test-config.toml into TARGET_DIR (default: $PG_HARNESS_DIR or this script's harness directory).
 # Run from the root of any project that needs a local PostgreSQL installation.
 
 set -e
@@ -20,8 +20,14 @@ PG_GIT_URL="https://git.postgresql.org/git/postgresql.git"
 PG_MAIN_REPO="postgres-latest"
 CONFIG_FILE="pg-test-config.toml"
 
-# TARGET_DIR: where pg-test-config.toml is written (default: $PWD)
-TARGET_DIR="${TARGET_DIR:-$PWD}"
+# Default everything to the harness directory (the dir containing this
+# script's parent). With PG_HARNESS_DIR exported, both consumers
+# (pg_arrow, pgfusion) share the same config + testdata layout.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# TARGET_DIR: where pg-test-config.toml is written (default: harness dir)
+TARGET_DIR="${TARGET_DIR:-${PG_HARNESS_DIR:-$HARNESS_DIR}}"
 # TESTDATA_DIR: where PG source/build/data live (default: $TARGET_DIR/testdata)
 TESTDATA_DIR="${TESTDATA_DIR:-$TARGET_DIR/testdata}"
 
@@ -43,11 +49,13 @@ usage() {
 Usage: $0 [OPTIONS]
 
 Setup PostgreSQL source code for testing with local installation.
-Writes pg-test-config.toml to TARGET_DIR (default: current working directory).
+Writes pg-test-config.toml + testdata/ under \$PG_HARNESS_DIR by default.
 
 Environment variables:
-    TARGET_DIR      Where pg-test-config.toml is written (default: \$PWD)
-    TESTDATA_DIR    Where PG source/build/data are stored (default: TARGET_DIR/testdata)
+    PG_HARNESS_DIR  Harness root (default: the directory containing this script).
+                    Drives TARGET_DIR and TESTDATA_DIR.
+    TARGET_DIR      Where pg-test-config.toml is written (default: \$PG_HARNESS_DIR)
+    TESTDATA_DIR    Where PG source/build/data are stored (default: \$TARGET_DIR/testdata)
     PGBENCH_SCALE   Scale factor for --pgbench (default: 1 = 100k accounts)
 
 OPTIONS:
@@ -64,8 +72,8 @@ EXAMPLES:
     # From pg_arrow/ — setup pg18 with build, init, and test data
     just pg-setup pg18
 
-    # Direct invocation with custom target
-    TARGET_DIR=/path/to/project bash setup-postgres.sh -b pg18 -B -i -t
+    # Direct invocation (PG_HARNESS_DIR must already point at this harness)
+    bash setup-postgres.sh -b pg18 -B -i -t
 
     # Setup latest with simple schema
     $0 -b latest -B -i -t -s
@@ -494,10 +502,15 @@ update_config_file() {
     local test_db_created="$5"
 
     local config_path="$TARGET_DIR/$CONFIG_FILE"
-    local data_dir="$worktree_dir/data"
-    local build_dir="$worktree_dir/build"
-    local install_dir="$worktree_dir/install"
-    local bin_dir="$install_dir/bin"
+
+    # Strip TARGET_DIR prefix so paths in the toml are relative to the
+    # harness root. read_pg_config() resolves them against the config
+    # file's parent directory at load time.
+    local rel_source="${worktree_dir#"$TARGET_DIR"/}"
+    local rel_data="$rel_source/data"
+    local rel_build="$rel_source/build"
+    local rel_install="$rel_source/install"
+    local rel_bin="$rel_install/bin"
 
     log_info "Updating $config_path ..."
 
@@ -510,11 +523,11 @@ update_config_file() {
 
 [postgres.$version_name]
 version = "$branch"
-source_dir = "$worktree_dir"
-data_dir = "$data_dir"
-build_dir = "$build_dir"
-install_dir = "$install_dir"
-bin_dir = "$bin_dir"
+source_dir = "$rel_source"
+data_dir = "$rel_data"
+build_dir = "$rel_build"
+install_dir = "$rel_install"
+bin_dir = "$rel_bin"
 initialized = $initialized
 test_db_created = $test_db_created
 EOF

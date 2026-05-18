@@ -3,3 +3,7 @@ debug/
 Cargo.lock
 **/*.rs.bk
 *.pdb
+
+# Test cluster artifacts written by setup-postgres.sh.
+testdata/
+pg-test-config.toml

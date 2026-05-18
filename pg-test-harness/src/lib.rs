@@ -23,14 +23,31 @@ pub struct PgConfig {
 
 /// Read configuration for a named PostgreSQL version from `pg-test-config.toml`.
 ///
-/// `manifest_dir` is typically `env!("CARGO_MANIFEST_DIR")`.
+/// The config file lives at `$PG_HARNESS_DIR/pg-test-config.toml`. Paths
+/// inside it are interpreted relative to `$PG_HARNESS_DIR`. Set
+/// `PG_ARROW_TEST_CONFIG=/path/to/file.toml` to override the file location
+/// (the parent directory still anchors relative paths).
+///
+/// The first argument is unused — kept for source compatibility with older
+/// callers that pass `env!("CARGO_MANIFEST_DIR")`.
 /// `version` matches a `[postgres.<version>]` section, e.g. `"pg18"`.
-pub fn read_pg_config(manifest_dir: &str, version: &str) -> PgConfig {
+pub fn read_pg_config(_manifest_dir_unused: &str, version: &str) -> PgConfig {
     let config_path = if let Ok(p) = std::env::var("PG_ARROW_TEST_CONFIG") {
         PathBuf::from(p)
     } else {
-        PathBuf::from(manifest_dir).join("pg-test-config.toml")
+        let harness_dir = std::env::var("PG_HARNESS_DIR").unwrap_or_else(|_| {
+            panic!(
+                "PG_HARNESS_DIR is not set. Point it at the pg-test-harness directory \
+                 (e.g. /path/to/utils/pg-test-harness) — the config and testdata live there."
+            )
+        });
+        PathBuf::from(harness_dir).join("pg-test-config.toml")
     };
+    let base_dir = config_path
+        .parent()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+
     let src = fs::read_to_string(&config_path)
         .unwrap_or_else(|_| panic!("pg-test-config.toml not found at {config_path:?}"));
     let table: Table = src.parse().expect("invalid TOML in pg-test-config.toml");
@@ -39,16 +56,21 @@ pub fn read_pg_config(manifest_dir: &str, version: &str) -> PgConfig {
         .and_then(|v| v.get(version))
         .unwrap_or_else(|| panic!("[postgres.{version}] section missing in pg-test-config.toml"));
 
-    let data_dir = section
-        .get("data_dir")
-        .and_then(|v| v.as_str())
-        .expect("data_dir missing")
-        .to_owned();
-    let bin_dir = section
-        .get("bin_dir")
-        .and_then(|v| v.as_str())
-        .expect("bin_dir missing")
-        .to_owned();
+    let resolve = |key: &str| -> String {
+        let raw = section
+            .get(key)
+            .and_then(|v| v.as_str())
+            .unwrap_or_else(|| panic!("{key} missing in [postgres.{version}]"));
+        let p = Path::new(raw);
+        if p.is_absolute() {
+            raw.to_owned()
+        } else {
+            base_dir.join(p).to_string_lossy().into_owned()
+        }
+    };
+
+    let data_dir = resolve("data_dir");
+    let bin_dir = resolve("bin_dir");
 
     let (port, socket_dir) = read_postgresql_conf(&data_dir);
     let pgbench_test_oid = section

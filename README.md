@@ -1,4 +1,4 @@
-# utilities
+# utils
 
 Shared tooling for the [`pg_arrow`](https://github.com/pg-arrow/pg_arrow) / [`pgfusion`](https://github.com/pg-arrow/pgfusion) family.
 

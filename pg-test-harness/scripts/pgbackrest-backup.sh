@@ -5,13 +5,13 @@
 # All backups are plain (uncompressed).
 #
 # Environment variables:
-#   TESTDATA_DIR   Root of PG source/build/data (default: $PWD/testdata)
+#   TESTDATA_DIR   Root of PG source/build/data (default: $PG_HARNESS_DIR/testdata)
 #   PG_VERSION     Version key matching pg-test-config.toml (default: pg18)
 #   PGBACKREST     Path to pgbackrest binary (default: /opt/homebrew/bin/pgbackrest)
 #   STANZA         pgbackrest stanza name (default: $PG_VERSION)
 #
 # Typical usage from a just recipe:
-#   TESTDATA_DIR="$(pwd)/testdata" PG_VERSION=pg18 bash pgbackrest-backup.sh setup
+#   PG_HARNESS_DIR=/path/to/harness PG_VERSION=pg18 bash pgbackrest-backup.sh setup
 
 set -e
 
@@ -21,7 +21,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-TESTDATA_DIR="${TESTDATA_DIR:-$PWD/testdata}"
+SCRIPT_DIR_BR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR_BR="$(cd "$SCRIPT_DIR_BR/.." && pwd)"
+TESTDATA_DIR="${TESTDATA_DIR:-${PG_HARNESS_DIR:-$HARNESS_DIR_BR}/testdata}"
 PG_VERSION="${PG_VERSION:-pg18}"
 PG_DIR="$TESTDATA_DIR/postgres-$PG_VERSION"
 PG_DATA="$PG_DIR/data"
@@ -53,7 +55,7 @@ Commands:
   restore  Restore from backup (use -t <dir> for target directory)
 
 Environment variables:
-  TESTDATA_DIR   Root of PG source/build/data (default: \$PWD/testdata)
+  TESTDATA_DIR   Root of PG source/build/data (default: \$PG_HARNESS_DIR/testdata)
   PG_VERSION     Version key, e.g. pg18 / pg17 / latest (default: pg18)
   PGBACKREST     Path to pgbackrest binary (default: /opt/homebrew/bin/pgbackrest)
   STANZA         pgbackrest stanza name (default: \$PG_VERSION)

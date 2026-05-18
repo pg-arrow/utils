@@ -21,27 +21,36 @@ Shared test harness for `pg_arrow` and `pgfusion`. It does two things:
 Add to your crate's `[dev-dependencies]`:
 
 ```toml
-pg-test-harness = { path = "../utilities/pg-test-harness" }
+pg-test-harness = { path = "../utils/pg-test-harness" }
 ```
 
 ## Configuration
 
-Place a `pg-test-config.toml` in your crate root (next to `Cargo.toml`):
+The harness directory is the single source of truth: testdata and the config live next to the scripts. Point `PG_HARNESS_DIR` at it once and everything else follows.
+
+```bash
+git clone https://github.com/pg-arrow/utils /path/to/utils
+export PG_HARNESS_DIR=/path/to/utils/pg-test-harness
+```
+
+`setup-postgres.sh` writes `$PG_HARNESS_DIR/pg-test-config.toml` automatically (see [Scripts](#scriptssetup-postgressh)). Paths inside it are stored **relative** to the harness directory; `read_pg_config()` resolves them at load time.
 
 ```toml
 [postgres.pg18]
-data_dir = "/path/to/testdata/postgres-pg18/data"
-bin_dir  = "/path/to/testdata/postgres-pg18/install/bin"
+data_dir = "testdata/postgres-pg18/data"
+bin_dir  = "testdata/postgres-pg18/install/bin"
 ```
 
-Use `setup-postgres.sh` (see [Scripts](#scripts)) to generate this file automatically.
+To point at a different config file, set `PG_ARROW_TEST_CONFIG=/abs/path/to/file.toml`.
 
 ## API
 
 ### Config
 
 ```rust
-let cfg = pg_test_harness::read_pg_config(env!("CARGO_MANIFEST_DIR"), "pg18");
+// First argument is ignored — kept for source compat with older callers.
+// Set PG_HARNESS_DIR before calling.
+let cfg = pg_test_harness::read_pg_config("", "pg18");
 // cfg.data_dir, cfg.bin_dir, cfg.port, cfg.socket_dir
 ```
 
@@ -101,11 +110,11 @@ if pg_test_harness::skip_if_no_checkpoint() {
 
 ### `scripts/setup-postgres.sh`
 
-Clones the PostgreSQL source, builds it, initializes a cluster, and seeds test databases. Writes `pg-test-config.toml` into `TARGET_DIR`.
+Clones the PostgreSQL source, builds it, initializes a cluster, and seeds test databases. Writes `pg-test-config.toml` and `testdata/` next to the script (`$PG_HARNESS_DIR`).
 
 ```bash
 # Build pg18 from source, init cluster, seed test data
-TARGET_DIR=/path/to/project bash scripts/setup-postgres.sh -b pg18 -B -i -t
+bash scripts/setup-postgres.sh -b pg18 -B -i -t
 
 # Simple single-table schema instead of e-commerce schema
 bash scripts/setup-postgres.sh -b pg18 -B -i -t -s
@@ -129,7 +138,8 @@ PGBENCH_SCALE=10 bash scripts/setup-postgres.sh -b pg18 -p
 
 | Variable | Default | Description |
 |---|---|---|
-| `TARGET_DIR` | `$PWD` | Where `pg-test-config.toml` is written |
+| `PG_HARNESS_DIR` | parent of `scripts/` | Drives every other path. Both consumers read this. |
+| `TARGET_DIR` | `$PG_HARNESS_DIR` | Where `pg-test-config.toml` is written. Override only for non-standard layouts. |
 | `TESTDATA_DIR` | `$TARGET_DIR/testdata` | Where PG source/build/data live |
 | `PGBENCH_SCALE` | `1` | Scale factor for `--pgbench` |
 | `PGBENCH_DBNAME` | `pgbench_test` | Database name for pgbench data |
@@ -162,7 +172,7 @@ bash scripts/pgbackrest-backup.sh restore -t /tmp/pg-restore
 
 | Variable | Default | Description |
 |---|---|---|
-| `TESTDATA_DIR` | `$PWD/testdata` | Root of PG source/build/data |
+| `TESTDATA_DIR` | `$PG_HARNESS_DIR/testdata` | Root of PG source/build/data |
 | `PG_VERSION` | `pg18` | Version key matching `pg-test-config.toml` |
 | `PGBACKREST` | `/opt/homebrew/bin/pgbackrest` | Path to pgbackrest binary |
 | `STANZA` | `$PG_VERSION` | pgbackrest stanza name |
